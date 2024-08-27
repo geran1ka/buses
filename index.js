@@ -12,6 +12,8 @@ const timeZone = "UTC";
 const port = 3000;
 const app = express();
 
+app.use(express.static(path.join(__dirname, "public")));
+
 const loadBuses = async () => {
   const data = await readFile(path.join(__dirname, "buses.json"), "utf-8");
 
@@ -68,7 +70,7 @@ const sendUpdatedData = async () => {
     return {
       ...bus,
       nextDeparture: {
-        data: nextDeparture.toFormat("yyyy-MM-dd"),
+        date: nextDeparture.toFormat("yyyy-MM-dd"),
         time: nextDeparture.toFormat("HH:mm:ss"),
       },
     };
@@ -77,30 +79,21 @@ const sendUpdatedData = async () => {
   return updatedBuses;
 };
 
+const sortBuses = (buses) => {
+  return [...buses].sort(
+    (a, b) =>
+      +new Date(`${a.nextDeparture.date}T${a.nextDeparture.time}Z`) -
+      +new Date(`${b.nextDeparture.date}T${b.nextDeparture.time}Z`)
+  );
+};
+
 app.get("/next-departure", async (req, res) => {
   try {
     const updatedBuses = await sendUpdatedData();
-    console.log(
-      "updatedBuses: ",
-      updatedBuses.sort((a, b) => {
-        const dateA = a.nextDeparture.data;
-        const dateB = b.nextDeparture.data;
-        const timeA = a.nextDeparture.time;
-        const timeB = b.nextDeparture.time;
 
-        // Сравнение по дате
-        if (dateA < dateB) return -1;
-        if (dateA > dateB) return 1;
+    const sortedBuses = sortBuses(updatedBuses);
 
-        // Если даты равны, сравнение по времени
-        if (timeA < timeB) return -1;
-        if (timeA > timeB) return 1;
-
-        return 0;
-      })
-    );
-
-    res.json(updatedBuses);
+    res.json(sortedBuses);
   } catch (error) {
     res.send("error");
   }
