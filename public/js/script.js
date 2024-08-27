@@ -38,10 +38,20 @@ const renderBusData = (buses) => {
   });
 };
 
+const initWebSocket = () => {
+  const ws = new WebSocket(`ws://${location.host}`);
+
+  ws.addEventListener("open", () => {
+    console.log("Websocket connection");
+  });
+};
+
 const init = async () => {
   const buses = await fetchBusData();
 
   renderBusData(buses);
+
+  initWebSocket();
 };
 
 init();
