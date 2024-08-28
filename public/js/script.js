@@ -15,6 +15,14 @@ const fetchBusData = async () => {
 const formatDate = (date) => date.toISOString().split("T")[0];
 const formatTime = (date) => date.toTimeString().split(" ")[0].slice(0, 8);
 
+const getTimeRemainingSeconds = (time) => {
+  const now = new Date();
+
+  const timeDefference = time - now;
+
+  return Math.floor(timeDefference / 1000);
+};
+
 const renderBusData = (buses) => {
   const tableBody = document.querySelector("#bus tbody");
 
@@ -27,11 +35,18 @@ const renderBusData = (buses) => {
       `${bus.nextDeparture.date}T${bus.nextDeparture.time}Z`
     );
 
+    const remainingSeconds = getTimeRemainingSeconds(nextDepartureDateTimeUTC);
+
+    const remainitTimeText =
+      remainingSeconds < 60 ? `Отправляется` : bus.nextDeparture.remaining;
+
     row.innerHTML = `
       <td>${bus.busNumber}</td>
       <td>${bus.startPoint} - ${bus.endPoint}</td>
       <td>${formatDate(nextDepartureDateTimeUTC)}</td>
       <td>${formatTime(nextDepartureDateTimeUTC)}</td>
+      <td>${remainitTimeText}</td>
+
     `;
 
     tableBody.append(row);
@@ -44,6 +59,29 @@ const initWebSocket = () => {
   ws.addEventListener("open", () => {
     console.log("Websocket connection");
   });
+
+  ws.addEventListener("message", (event) => {
+    const buses = JSON.parse(event.data);
+    renderBusData(buses);
+  });
+
+  ws.addEventListener("error", (error) => {
+    console.log(`WebSocket error: ${error}`);
+  });
+
+  ws.addEventListener("close", () => {
+    console.log(`WebSocket econnection close`);
+  });
+};
+
+const updateTime = () => {
+  const currentTimeElement = document.querySelector("#current-time");
+  const now = new Date();
+  currentTimeElement.textContent = now.toTimeString().split(" ")[0];
+
+  setTimeout(() => {
+    updateTime();
+  }, 1000);
 };
 
 const init = async () => {
@@ -52,6 +90,8 @@ const init = async () => {
   renderBusData(buses);
 
   initWebSocket();
+
+  updateTime();
 };
 
 init();
